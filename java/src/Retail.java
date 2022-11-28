@@ -461,7 +461,36 @@ public class Retail {
       	System.err.println (e.getMessage());
       }
    }
-   public static void placeOrder(Retail esql) {}
+   public static void placeOrder(Retail esql) {
+      try{
+         boolean found = false;
+         System.out.print("\tEnter StoreID: ");
+         String storeID = in.readLine();
+         System.out.print("\tEnter Product Name: ");
+         String proName = in.readLine();
+         System.out.print("\tEnter # of Units: ");
+         String unitSize = in.readLine();
+         int uID = Integer.parseInt(esql.userId);
+         String query = String.format("select s.storeID, s.name, calculate_distance(u.latitude, u.longitude, s.latitude, s.longitude) as dist from users u, store s where u.name = '%s' and calculate_distance(u.latitude, u.longitude, s.latitude, s.longitude) < 30", uID);
+         List<List<String>> result = esql.executeQueryAndReturnResult(query);
+         int size = esql.executeQuery(query);
+         for(int i =0; i < size;i++){
+         if(result.get(i).contains(storeID)){
+                int sID = Integer.parseInt(storeID);
+                query = String.format("INSERT INTO ORDERS (customerID, storeID, productName, unitsOrdered,orderTime) VALUES ('%d', '%d', '%s',1,NOW())", uID,sID, proName);
+                esql.executeQuery(query);
+                found = true;
+                break;
+         }
+        }
+        if(!found){
+        System.out.print("Store not in range");
+        }
+        }
+        catch(Exception e){
+                System.err.println (e.getMessage ());
+        }
+   }
    public static void viewRecentOrders(Retail esql) {
       try{
 	      String query = String.format("SELECT O.storeID, S.name, O.productName, O.unitsOrdered, O.orderTime FROM Users U, Store S, Orders O WHERE U.userID= '%s' AND U.userID=O.customerID AND S.storeID=O.storeID ORDER BY O.orderTime DESC LIMIT 5", esql.userId);
@@ -473,7 +502,42 @@ public class Retail {
       	System.err.println (e.getMessage());
       }
    }
-   public static void updateProduct(Retail esql) {}
+   public static void updateProduct(Retail esql) {
+      try{    
+                String authorisedUser = checkManager(esql);
+                if(authorisedUser == null){
+                        System.out.print("ERROR: Not A Manager ID\n\n");
+                        return;
+                }
+                if(!authorisedUser.equals(esql.userId)){
+                        System.out.print("ERROR: Not Correct Manager ID\n\n");
+                        return;
+                }
+                
+                String storeID = store_belongs_manager(esql);
+                if(storeID == null){
+                        System.out.print("ERROR: Invalid Store ID\n\n");
+                        return;
+                }
+                System.out.print("\tEnter Product Name: ");
+                String proName = in.readLine();
+                System.out.print("\tEnter # of Units: ");
+                String unitSize = in.readLine();
+                System.out.print("\tEnter cost: ");
+                String unitCost = in.readLine();
+                int sID = Integer.parseInt(storeID);
+                int mID = Integer.parseInt(authorisedUser);
+                int uSize = Integer.parseInt(unitSize);
+                int uCost = Integer.parseInt(unitCost);
+                String query = String.format("UPDATE PRODUCT SET numberOfUnits = '%d', pricePerUnit = '%d' WHERE productName = '%s' AND storeID = '%d'",uSize,uCost,proName,sID); 
+                esql.executeQuery(query);
+                String query2 = String.format("INSERT INTO PRODUCTUPDATES (managerID,storeID,productName,updatedOn) VALUES ('%d','%d','%s',NOW())",mID,sID,proName);                      
+                esql.executeQuery(query2);
+        }
+        catch(Exception e){
+                System.err.println (e.getMessage ());
+        }
+   }
    public static void viewRecentUpdates(Retail esql) {
       try{
          String authorisedUser = checkManager(esql);
