@@ -285,6 +285,13 @@ public class Retail {
                 System.out.println("7. View 5 Popular Items");
                 System.out.println("8. View 5 Popular Customers");
                 System.out.println("9. Place Product Supply Request to Warehouse");
+                System.out.println("10. View All Order Information");
+
+                //the following functionalities basically used by admin
+                System.out.println("11. View All User Information");
+                System.out.println("12. View All Product Information");
+                System.out.println("13. Update User Information");
+                System.out.println("14. Update Product Information");
 
                 System.out.println(".........................");
                 System.out.println("20. Log out");
@@ -298,6 +305,11 @@ public class Retail {
                    case 7: viewPopularProducts(esql); break;
                    case 8: viewPopularCustomers(esql); break;
                    case 9: placeProductSupplyRequests(esql); break;
+                   case 10: viewAllOrderInformation(esql); break;
+                   case 11: viewAllUserInformation(esql); break;
+                   case 12: viewAllProductInformation(esql); break;
+                   case 13: updateUserInformation(esql); break;
+                   case 14: updateProductInformation(esql); break;
 
                    case 20: usermenu = false; break;
                    default : System.out.println("Unrecognized choice!"); break;
@@ -417,6 +429,22 @@ public class Retail {
       }
    }//end
 
+   public static String checkAdmin(Retail esql){
+      try{
+         System.out.print("Enter Admin ID: ");
+         String adminID = in.readLine();
+
+         String query = String.format("SELECT U.type FROM USERS U WHERE U.userID = '%s' AND U.type = 'admin'", adminID);
+         int userNum = esql.executeQuery(query);
+	 if (userNum > 0)
+		return adminID;
+         return null;
+      }catch(Exception e){
+         System.out.print("\tERROR: Not A Manager ID");
+         return null;
+      }
+   }//end
+
    public static String store_belongs_manager(Retail esql){
       try{
          System.out.print("Enter Store ID: ");
@@ -470,21 +498,32 @@ public class Retail {
          String proName = in.readLine();
          System.out.print("\tEnter # of Units: ");
          String unitSize = in.readLine();
+         int uSize = Integer.parseInt(unitSize);
          int uID = Integer.parseInt(esql.userId);
-         String query = String.format("select s.storeID, s.name, calculate_distance(u.latitude, u.longitude, s.latitude, s.longitude) as dist from users u, store s where u.name = '%s' and calculate_distance(u.latitude, u.longitude, s.latitude, s.longitude) < 30", uID);
+         String query = String.format("select s.storeID, s.name, calculate_distance(u.latitude, u.longitude, s.latitude, s.longitude) as dist from users u, store s where u.userId = '%s' and calculate_distance(u.latitude, u.longitude, s.latitude, s.longitude) < 30", uID);
          List<List<String>> result = esql.executeQueryAndReturnResult(query);
-         int size = esql.executeQuery(query);
+         int size = result.size();
          for(int i =0; i < size;i++){
          if(result.get(i).contains(storeID)){
                 int sID = Integer.parseInt(storeID);
-                query = String.format("INSERT INTO ORDERS (customerID, storeID, productName, unitsOrdered,orderTime) VALUES ('%d', '%d', '%s',1,NOW())", uID,sID, proName);
-                esql.executeQuery(query);
+                String query2 =  String.format("select numberOfUnits from product where storeId = '%d' AND productName = '%s'", sID,proName);
+                List<List<String>> res = esql.executeQueryAndReturnResult(query2);
+                int remain = Integer.parseInt(res.get(0).get(0)) - uSize;
+                if(remain >= 0){
+                query = String.format("INSERT INTO ORDERS (customerID, storeID, productName, unitsOrdered,orderTime) VALUES ('%d', '%d', '%s','%d',NOW())", uID,sID, proName,uSize);
+                esql.executeUpdate(query);
+                query = String.format("UPDATE PRODUCT SET numberOfUnits = '%d' WHERE productName = '%s' AND storeID = '%d'",remain,proName,sID);
+                esql.executeUpdate(query);
+                }
+                else{
+                System.out.print("Not enough inventory in store!");
+                }
                 found = true;
                 break;
          }
         }
         if(!found){
-        System.out.print("Store not in range");
+                System.out.print("Store not in range");
         }
         }
         catch(Exception e){
@@ -530,9 +569,9 @@ public class Retail {
                 int uSize = Integer.parseInt(unitSize);
                 int uCost = Integer.parseInt(unitCost);
                 String query = String.format("UPDATE PRODUCT SET numberOfUnits = '%d', pricePerUnit = '%d' WHERE productName = '%s' AND storeID = '%d'",uSize,uCost,proName,sID); 
-                esql.executeQuery(query);
+                esql.executeUpdate(query);
                 String query2 = String.format("INSERT INTO PRODUCTUPDATES (managerID,storeID,productName,updatedOn) VALUES ('%d','%d','%s',NOW())",mID,sID,proName);                      
-                esql.executeQuery(query2);
+                esql.executeUpdate(query2);
         }
         catch(Exception e){
                 System.err.println (e.getMessage ());
@@ -622,6 +661,78 @@ public class Retail {
       }
    }
    public static void placeProductSupplyRequests(Retail esql) {}
+   public static void viewAllOrderInformation(Retail esql) {
+      try{
+         String authorisedUser = checkManager(esql);
+         if(authorisedUser == null){
+            System.out.print("ERROR: Not A Manager ID\n\n");
+            return;
+         }
+         if(!authorisedUser.equals(esql.userId)){
+            System.out.print("ERROR: Not Correct Manager ID\n\n");
+            return;
+         }
+
+         
+         String storeID = store_belongs_manager(esql);
+         if(storeID == null){
+            System.out.print("ERROR: Invalid Store ID\n\n");
+            return;
+         }
+
+	      String query = String.format("SELECT O.orderNumber, U.name, O.storeID, O.productName, O.orderTime FROM Orders O, Users U WHERE O.customerID=U.userID AND O.storeID= '%s'", storeID);
+         
+         int rowCount = esql.executeQuery(query);
+         System.out.println(esql.executeQueryAndPrintResult(query));
+         System.out.println ("total row(s): " + rowCount);
+      }catch(Exception e){
+      	System.err.println (e.getMessage());
+      }
+   }
+   public static void viewAllUserInformation(Retail esql) {
+      try{
+         String authorisedUser = checkAdmin(esql);
+         if(authorisedUser == null){
+            System.out.print("ERROR: Not An Admin ID\n\n");
+            return;
+         }
+         if(!authorisedUser.equals(esql.userId)){
+            System.out.print("ERROR: Not Correct Admin ID\n\n");
+            return;
+         }
+
+	      String query = String.format("SELECT * FROM Users");
+         
+         int rowCount = esql.executeQuery(query);
+         System.out.println(esql.executeQueryAndPrintResult(query));
+         System.out.println ("total row(s): " + rowCount);
+      }catch(Exception e){
+      	System.err.println (e.getMessage());
+      }
+   }
+   public static void viewAllProductInformation(Retail esql) {
+      try{
+         String authorisedUser = checkAdmin(esql);
+         if(authorisedUser == null){
+            System.out.print("ERROR: Not An Admin ID\n\n");
+            return;
+         }
+         if(!authorisedUser.equals(esql.userId)){
+            System.out.print("ERROR: Not Correct Admin ID\n\n");
+            return;
+         }
+
+	      String query = String.format("SELECT * FROM Product");
+         
+         int rowCount = esql.executeQuery(query);
+         System.out.println(esql.executeQueryAndPrintResult(query));
+         System.out.println ("total row(s): " + rowCount);
+      }catch(Exception e){
+      	System.err.println (e.getMessage());
+      }
+   }
+   public static void updateUserInformation(Retail esql) {}
+   public static void updateProductInformation(Retail esql) {}
 
 }//end Retail
 
