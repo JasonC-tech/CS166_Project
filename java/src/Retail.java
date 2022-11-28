@@ -31,7 +31,7 @@ import java.lang.Math;
  *
  */
 public class Retail {
-
+   public String userId;
    // reference to physical database connection.
    private Connection _connection = null;
 
@@ -382,11 +382,16 @@ public class Retail {
       try{
          System.out.print("\tEnter name: ");
          String name = in.readLine();
+         System.out.print("\tEnter user id: ");
+         String userID = in.readLine();
          System.out.print("\tEnter password: ");
          String password = in.readLine();
 
-         String query = String.format("SELECT * FROM USERS WHERE name = '%s' AND password = '%s'", name, password);
+         esql.userId = userID;
+
+         String query = String.format("SELECT * FROM USERS WHERE name = '%s' AND userID = '%s' AND password = '%s'", name, userID, password);
          int userNum = esql.executeQuery(query);
+
 	 if (userNum > 0)
 		return name;
          return null;
@@ -396,16 +401,162 @@ public class Retail {
       }
    }//end
 
+   public static String checkManager(Retail esql){
+      try{
+         System.out.print("Enter Manager ID: ");
+         String managerID = in.readLine();
+
+         String query = String.format("SELECT U.type FROM USERS U WHERE U.userID = '%s' AND U.type = 'manager'", managerID);
+         int userNum = esql.executeQuery(query);
+	 if (userNum > 0)
+		return managerID;
+         return null;
+      }catch(Exception e){
+         System.out.print("\tERROR: Not A Manager ID");
+         return null;
+      }
+   }//end
+
+   public static String store_belongs_manager(Retail esql){
+      try{
+         System.out.print("Enter Store ID: ");
+         String storeID = in.readLine();
+
+         String query = String.format("SELECT S.storeID FROM Store S WHERE S.storeID = '%s' AND S.managerID = '%s'", storeID, esql.userId);
+         int userNum = esql.executeQuery(query);
+	 if (userNum > 0)
+		return storeID;
+         return null;
+      }catch(Exception e){
+         System.out.print("\tERROR: Not A Manager ID");
+         return null;
+      }
+   }//end
+
 // Rest of the functions definition go in here
 
-   public static void viewStores(Retail esql) {}
-   public static void viewProducts(Retail esql) {}
+   public static void viewStores(Retail esql) {
+      try{
+      String query = String.format("select s.storeID, s.name, calculate_distance(u.latitude, u.longitude, s.latitude, s.longitude) as dist from users u, store s where u.userID = '%s' and calculate_distance(u.latitude, u.longitude, s.latitude, s.longitude) < 30", esql.userId);
+      
+      int rowCount = esql.executeQuery(query);
+      System.out.println(esql.executeQueryAndPrintResult(query));
+      System.out.println ("total row(s): " + rowCount);
+      }
+      catch(Exception e){
+         System.err.println (e.getMessage ());
+      }
+   }
+   public static void viewProducts(Retail esql) {
+      try{
+	      String query = "SELECT * FROM Product Where storeID = ";
+         System.out.print("Enter Store ID: ");
+         String input = in.readLine();
+         query += input;
+
+         int rowCount = esql.executeQuery(query);
+         System.out.println(esql.executeQueryAndPrintResult(query));
+         System.out.println ("total row(s): " + rowCount);
+      }catch(Exception e){
+      	System.err.println (e.getMessage());
+      }
+   }
    public static void placeOrder(Retail esql) {}
-   public static void viewRecentOrders(Retail esql) {}
+   public static void viewRecentOrders(Retail esql) {
+      try{
+	      String query = String.format("SELECT O.storeID, S.name, O.productName, O.unitsOrdered, O.orderTime FROM Users U, Store S, Orders O WHERE U.userID= '%s' AND U.userID=O.customerID AND S.storeID=O.storeID ORDER BY O.orderTime DESC LIMIT 5", esql.userId);
+         
+         int rowCount = esql.executeQuery(query);
+         System.out.println(esql.executeQueryAndPrintResult(query));
+         System.out.println ("total row(s): " + rowCount);
+      }catch(Exception e){
+      	System.err.println (e.getMessage());
+      }
+   }
    public static void updateProduct(Retail esql) {}
-   public static void viewRecentUpdates(Retail esql) {}
-   public static void viewPopularProducts(Retail esql) {}
-   public static void viewPopularCustomers(Retail esql) {}
+   public static void viewRecentUpdates(Retail esql) {
+      try{
+         String authorisedUser = checkManager(esql);
+         if(authorisedUser == null){
+            System.out.print("ERROR: Not A Manager ID\n\n");
+            return;
+         }
+         if(!authorisedUser.equals(esql.userId)){
+            System.out.print("ERROR: Not Correct Manager ID\n\n");
+            return;
+         }
+
+         String storeID = store_belongs_manager(esql);
+         if(storeID == null){
+            System.out.print("ERROR: Invalid Store ID\n\n");
+            return;
+         }
+
+	      String query = String.format("SELECT P.updateNumber, P.managerID, P.storeID, P.productName, P.updatedOn FROM ProductUpdates P, Users U WHERE U.userID= '%s' AND U.userID=P.managerID AND P.storeID = '%s' ORDER BY P.updatedOn DESC LIMIT 5", authorisedUser, storeID);
+         
+         int rowCount = esql.executeQuery(query);
+         System.out.println(esql.executeQueryAndPrintResult(query));
+         System.out.println ("total row(s): " + rowCount);
+      }catch(Exception e){
+      	System.err.println (e.getMessage());
+      }
+   }
+   public static void viewPopularProducts(Retail esql) {
+      try{
+      String authorisedUser = checkManager(esql);
+      if(authorisedUser == null){
+         System.out.print("ERROR: Not A Manager ID\n\n");
+         return;
+      }
+      if(!authorisedUser.equals(esql.userId)){
+         System.out.print("ERROR: Not Correct Manager ID\n\n");
+         return;
+      }
+
+      String storeID = store_belongs_manager(esql);
+      if(storeID == null){
+         System.out.print("ERROR: Invalid Store ID\n\n");
+         return;
+      }
+
+		 String query = String.format("SELECT productName,COUNT(*) AS Orders_Made FROM ORDERS WHERE storeID = '%s' GROUP BY productName ORDER BY COUNT(*) DESC LIMIT 5", storeID);
+
+       int rowCount = esql.executeQuery(query);
+       System.out.println(esql.executeQueryAndPrintResult(query));
+       System.out.println ("total row(s): " + rowCount);		
+      }
+      catch(Exception e){
+         System.err.println (e.getMessage ());
+      }
+   }
+   public static void viewPopularCustomers(Retail esql) {
+      try{
+         String authorisedUser = checkManager(esql);
+         if(authorisedUser == null){
+            System.out.print("ERROR: Not A Manager ID\n\n");
+            return;
+         }
+         if(!authorisedUser.equals(esql.userId)){
+            System.out.print("ERROR: Not Correct Manager ID\n\n");
+            return;
+         }
+
+         
+         String storeID = store_belongs_manager(esql);
+         if(storeID == null){
+            System.out.print("ERROR: Invalid Store ID\n\n");
+            return;
+         }
+
+	      String query = String.format("SELECT O.storeID, U.name, O.customerID, COUNT(*) AS Orders_Made FROM Users U, Store S, Orders O WHERE S.managerID= '%s' AND U.userID=O.customerID AND S.storeID=O.storeID AND O.storeID = '%s' GROUP BY O.customerID, O.storeID, U.name ORDER BY COUNT(*) DESC LIMIT 5", authorisedUser, storeID);
+         
+         int rowCount = esql.executeQuery(query);
+         System.out.println(esql.executeQueryAndPrintResult(query));
+         System.out.println ("total row(s): " + rowCount);
+      }catch(Exception e){
+      	System.err.println (e.getMessage());
+      }
+   }
    public static void placeProductSupplyRequests(Retail esql) {}
 
 }//end Retail
