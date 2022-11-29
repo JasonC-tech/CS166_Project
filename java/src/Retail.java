@@ -272,7 +272,7 @@ public class Retail {
             if (authorisedUser != null) {
               boolean usermenu = true;
               while(usermenu) {
-                System.out.println("MAIN MENU");
+                System.out.println('\n' + "MAIN MENU");
                 System.out.println("---------");
                 System.out.println("1. View Stores within 30 miles");
                 System.out.println("2. View Product List");
@@ -290,8 +290,9 @@ public class Retail {
                 //the following functionalities basically used by admin
                 System.out.println("11. View All User Information");
                 System.out.println("12. View All Product Information");
-                System.out.println("13. Update User Information");
-                System.out.println("14. Update Product Information");
+                System.out.println("13. View All Product Supply Requests");
+                System.out.println("14. Update User Information");
+                System.out.println("15. Update Product Information");
 
                 System.out.println(".........................");
                 System.out.println("20. Log out");
@@ -308,8 +309,9 @@ public class Retail {
                    case 10: viewAllOrderInformation(esql); break;
                    case 11: viewAllUserInformation(esql); break;
                    case 12: viewAllProductInformation(esql); break;
-                   case 13: updateUserInformation(esql); break;
-                   case 14: updateProductInformation(esql); break;
+                   case 13: viewAllProductSupplyRequests(esql); break;
+                   case 14: updateUserInformation(esql); break;
+                   case 15: updateProductInformation(esql); break;
 
                    case 20: usermenu = false; break;
                    default : System.out.println("Unrecognized choice!"); break;
@@ -418,7 +420,7 @@ public class Retail {
          System.out.print("Enter Manager ID: ");
          String managerID = in.readLine();
 
-         String query = String.format("SELECT U.type FROM USERS U WHERE U.userID = '%s' AND U.type = 'manager'", managerID);
+         String query = String.format("SELECT U.type FROM USERS U WHERE U.userID = '%s' AND U.type = 'manager' OR U.type = 'admin'", managerID);
          int userNum = esql.executeQuery(query);
 	 if (userNum > 0)
 		return managerID;
@@ -543,21 +545,46 @@ public class Retail {
    }
    public static void updateProduct(Retail esql) {
       try{    
-                String authorisedUser = checkManager(esql);
-                if(authorisedUser == null){
-                        System.out.print("ERROR: Not A Manager ID\n\n");
-                        return;
-                }
-                if(!authorisedUser.equals(esql.userId)){
-                        System.out.print("ERROR: Not Correct Manager ID\n\n");
-                        return;
+               String authorisedUser = "";
+               String storeID = "";
+               System.out.println('\n' + "OPTIONS");
+               System.out.println("-------");
+               System.out.println("1. Manager");
+               System.out.println("2. Admin");
+               System.out.println("3. Cancel");
+               switch (readChoice()){
+                   case 1: authorisedUser = checkManager(esql);
+                           if(authorisedUser == null){
+                                    System.out.print("ERROR: Not A Manager ID\n\n");
+                                    return;
+                           }
+                           if(!authorisedUser.equals(esql.userId)){
+                                    System.out.print("ERROR: Not Correct Manager ID\n\n");
+                                    return;
+                           }
+                           
+                           storeID = store_belongs_manager(esql);
+                           if(storeID == null){
+                                    System.out.print("ERROR: Invalid Store ID\n\n");
+                                    return;
+                           }; 
+                           break;
+                   case 2: authorisedUser = checkAdmin(esql);
+                           if(authorisedUser == null){
+                              System.out.print("ERROR: Not An Admin ID\n\n");
+                              return;
+                           }
+                           if(!authorisedUser.equals(esql.userId)){
+                              System.out.print("ERROR: Not Correct Admin ID\n\n");
+                              return;
+                           }
+                           System.out.print("\tEnter StoreID: ");
+                           storeID = in.readLine();
+                           break;
+                   case 3: return;
+                   default : System.out.println("Unrecognized choice!"); break;
                 }
                 
-                String storeID = store_belongs_manager(esql);
-                if(storeID == null){
-                        System.out.print("ERROR: Invalid Store ID\n\n");
-                        return;
-                }
                 System.out.print("\tEnter Product Name: ");
                 String proName = in.readLine();
                 System.out.print("\tEnter # of Units: ");
@@ -660,7 +687,45 @@ public class Retail {
       	System.err.println (e.getMessage());
       }
    }
-   public static void placeProductSupplyRequests(Retail esql) {}
+   public static void placeProductSupplyRequests(Retail esql) {
+      try{
+                String authorisedUser = checkManager(esql);
+                if(authorisedUser == null){
+                        System.out.print("ERROR: Not A Manager ID\n\n");
+                        return;
+                }
+                if(!authorisedUser.equals(esql.userId)){
+                        System.out.print("ERROR: Not Correct Manager ID\n\n");
+                        return;
+                }
+                String storeID = store_belongs_manager(esql);
+                if(storeID == null){
+                        System.out.print("ERROR: Invalid Store ID\n\n");
+                        return;
+                }
+                int sID = Integer.parseInt(storeID);
+                int mID = Integer.parseInt(authorisedUser);
+                System.out.print("\tEnter Product Name: ");
+                String proName = in.readLine();
+                System.out.print("\tEnter # of Units: ");
+                String unitSize = in.readLine();
+                System.out.print("\tEnter Warehouse ID: ");
+                String warehouseID = in.readLine();
+                int wID = Integer.parseInt(warehouseID);
+                String query2 =  String.format("select numberOfUnits from product where storeId = '%d' AND productName = '%s'", sID,proName);
+                int uSize = Integer.parseInt(unitSize);
+                List<List<String>> res = esql.executeQueryAndReturnResult(query2);
+                int updateNum = Integer.parseInt(res.get(0).get(0)) + uSize;
+                String query = String.format("UPDATE PRODUCT SET numberOfUnits = '%d' WHERE productName = '%s' AND storeID = '%d'",updateNum,proName,sID);
+                esql.executeUpdate(query);
+                query = String.format("INSERT INTO ProductSupplyRequests (managerID, warehouseID, storeID, productName, unitsRequested) VALUES ('%d','%d', '%d', '%s','%d')", mID, wID, sID, proName, uSize);
+                esql.executeUpdate(query);
+        }
+        catch(Exception e){
+                System.err.println (e.getMessage());
+
+        }
+   }
    public static void viewAllOrderInformation(Retail esql) {
       try{
          String authorisedUser = checkManager(esql);
@@ -723,6 +788,27 @@ public class Retail {
          }
 
 	      String query = String.format("SELECT * FROM Product");
+         
+         int rowCount = esql.executeQuery(query);
+         System.out.println(esql.executeQueryAndPrintResult(query));
+         System.out.println ("total row(s): " + rowCount);
+      }catch(Exception e){
+      	System.err.println (e.getMessage());
+      }
+   }
+   public static void viewAllProductSupplyRequests(Retail esql){
+      try{
+         String authorisedUser = checkAdmin(esql);
+         if(authorisedUser == null){
+            System.out.print("ERROR: Not An Admin ID\n\n");
+            return;
+         }
+         if(!authorisedUser.equals(esql.userId)){
+            System.out.print("ERROR: Not Correct Admin ID\n\n");
+            return;
+         }
+
+	      String query = String.format("SELECT * FROM ProductSupplyRequests");
          
          int rowCount = esql.executeQuery(query);
          System.out.println(esql.executeQueryAndPrintResult(query));
