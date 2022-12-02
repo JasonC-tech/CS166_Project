@@ -483,7 +483,7 @@ public class Retail {
       String query = String.format("select s.storeID, s.name, calculate_distance(u.latitude, u.longitude, s.latitude, s.longitude) as dist from users u, store s where u.userID = '%s' and calculate_distance(u.latitude, u.longitude, s.latitude, s.longitude) < 30", esql.userId);
       
       int rowCount = esql.executeQuery(query);
-      System.out.println(esql.executeQueryAndPrintResult(query));
+      esql.executeQueryAndPrintResult(query);
       System.out.println ("total row(s): " + rowCount);
       }
       catch(Exception e){
@@ -498,7 +498,7 @@ public class Retail {
          query += input;
 
          int rowCount = esql.executeQuery(query);
-         System.out.println(esql.executeQueryAndPrintResult(query));
+         esql.executeQueryAndPrintResult(query);
          System.out.println ("total row(s): " + rowCount);
       }catch(Exception e){
       	System.err.println (e.getMessage());
@@ -560,7 +560,7 @@ public class Retail {
 	      String query = String.format("SELECT O.storeID, S.name, O.productName, O.unitsOrdered, O.orderTime FROM Users U, Store S, Orders O WHERE U.userID= '%s' AND U.userID=O.customerID AND S.storeID=O.storeID ORDER BY O.orderTime DESC LIMIT 5", esql.userId);
          
          int rowCount = esql.executeQuery(query);
-         System.out.println(esql.executeQueryAndPrintResult(query));
+         esql.executeQueryAndPrintResult(query);
          System.out.println ("total row(s): " + rowCount);
       }catch(Exception e){
       	System.err.println (e.getMessage());
@@ -672,7 +672,7 @@ public class Retail {
 	      String query = String.format("SELECT P.updateNumber, P.managerID, P.storeID, P.productName, P.updatedOn FROM ProductUpdates P, Users U WHERE U.userID=P.managerID AND P.storeID = '%s' ORDER BY P.updatedOn DESC LIMIT 5", storeID);
          
          int rowCount = esql.executeQuery(query);
-         System.out.println(esql.executeQueryAndPrintResult(query));
+         esql.executeQueryAndPrintResult(query);
          System.out.println ("total row(s): " + rowCount);
       }catch(Exception e){
       	System.err.println (e.getMessage());
@@ -723,7 +723,7 @@ public class Retail {
 		 String query = String.format("SELECT productName,COUNT(*) AS Orders_Made FROM ORDERS WHERE storeID = '%s' GROUP BY productName ORDER BY COUNT(*) DESC LIMIT 5", storeID);
 
        int rowCount = esql.executeQuery(query);
-       System.out.println(esql.executeQueryAndPrintResult(query));
+       esql.executeQueryAndPrintResult(query);
        System.out.println ("total row(s): " + rowCount);		
       }
       catch(Exception e){
@@ -775,7 +775,7 @@ public class Retail {
 	      String query = String.format("SELECT O.storeID, U.name, O.customerID, COUNT(*) AS Orders_Made FROM Users U, Store S, Orders O WHERE U.userID=O.customerID AND S.storeID=O.storeID AND O.storeID = '%s' GROUP BY O.customerID, O.storeID, U.name ORDER BY COUNT(*) DESC LIMIT 5", storeID);
          
          int rowCount = esql.executeQuery(query);
-         System.out.println(esql.executeQueryAndPrintResult(query));
+         esql.executeQueryAndPrintResult(query);
          System.out.println ("total row(s): " + rowCount);
       }catch(Exception e){
       	System.err.println (e.getMessage());
@@ -890,7 +890,7 @@ public class Retail {
 	      String query = String.format("SELECT O.orderNumber, U.name, O.storeID, O.productName, O.orderTime FROM Orders O, Users U WHERE O.customerID=U.userID AND O.storeID= '%s'", storeID);
          
          int rowCount = esql.executeQuery(query);
-         System.out.println(esql.executeQueryAndPrintResult(query));
+         esql.executeQueryAndPrintResult(query);
          System.out.println ("total row(s): " + rowCount);
       }catch(Exception e){
       	System.err.println (e.getMessage());
@@ -947,7 +947,7 @@ public class Retail {
          }
          
          int rowCount = esql.executeQuery(query);
-         System.out.println(esql.executeQueryAndPrintResult(query));
+         esql.executeQueryAndPrintResult(query);
          System.out.println ("total row(s): " + rowCount);
       }catch(Exception e){
       	System.err.println (e.getMessage());
@@ -968,7 +968,7 @@ public class Retail {
 	      String query = String.format("SELECT * FROM Users");
          
          int rowCount = esql.executeQuery(query);
-         System.out.println(esql.executeQueryAndPrintResult(query));
+         esql.executeQueryAndPrintResult(query);
          System.out.println ("total row(s): " + rowCount);
       }catch(Exception e){
       	System.err.println (e.getMessage());
@@ -989,7 +989,7 @@ public class Retail {
 	      String query = String.format("SELECT * FROM Product");
          
          int rowCount = esql.executeQuery(query);
-         System.out.println(esql.executeQueryAndPrintResult(query));
+         esql.executeQueryAndPrintResult(query);
          System.out.println ("total row(s): " + rowCount);
       }catch(Exception e){
       	System.err.println (e.getMessage());
