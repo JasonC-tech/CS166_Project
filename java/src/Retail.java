@@ -463,6 +463,19 @@ public class Retail {
       }
    }//end
 
+   public static String checkManager_Admin(Retail esql){
+      try{
+         String query = String.format("SELECT U.type FROM USERS U WHERE U.userID = '%s' AND U.type = 'manager' OR U.type = 'admin'", esql.userId);
+         int userNum = esql.executeQuery(query);
+	 if (userNum > 0)
+		return esql.userId;
+         return null;
+      }catch(Exception e){
+         System.out.print("\tERROR: Not A Manager ID");
+         return null;
+      }
+   }//end
+
 // Rest of the functions definition go in here
 
    public static void viewStores(Retail esql) {
@@ -493,6 +506,11 @@ public class Retail {
    }
    public static void placeOrder(Retail esql) {
       try{
+         String authorisedUser = checkManager_Admin(esql);
+         if(authorisedUser != null){
+            System.out.println("Must be logged in as a customer!");
+            return;
+         }
          boolean found = false;
          System.out.print("\tEnter StoreID: ");
          String storeID = in.readLine();
@@ -534,6 +552,11 @@ public class Retail {
    }
    public static void viewRecentOrders(Retail esql) {
       try{
+         String authorisedUser = checkManager_Admin(esql);
+         if(authorisedUser != null){
+            System.out.println("Must be logged in as a customer!");
+            return;
+         }
 	      String query = String.format("SELECT O.storeID, S.name, O.productName, O.unitsOrdered, O.orderTime FROM Users U, Store S, Orders O WHERE U.userID= '%s' AND U.userID=O.customerID AND S.storeID=O.storeID ORDER BY O.orderTime DESC LIMIT 5", esql.userId);
          
          int rowCount = esql.executeQuery(query);
@@ -993,7 +1016,7 @@ public class Retail {
       System.out.println('\n' + "OPTIONS");
       System.out.println("-------");
       System.out.println("1. Update User Info");
-      System.out.println("2. Remove User Info");
+      System.out.println("2. Remove User");
       System.out.println("3. Cancel");
       switch (readChoice()){
          case 1:
@@ -1040,31 +1063,41 @@ public class Retail {
       String query = "";
       String proName = "";
       String nProName = "";
+      String storeID = "";
       if(authorisedUser == null){
          System.out.print("ERROR: Not An Admin ID\n\n");
          return;
       }
       System.out.println('\n' + "OPTIONS");
       System.out.println("-------");
-      System.out.println("1. Update Product Info");
-      System.out.println("2. Remove Product Info");
+      System.out.println("1. Add Product");
+      System.out.println("2. Remove Product");
       System.out.println("3. Cancel");
       switch (readChoice()){
          case 1:
-            System.out.print("Input Product Name to update: ");
-            proName = in.readLine();
             System.out.print("Input New Product Name: ");
-            nProName = in.readLine();
+            proName = in.readLine();
+            System.out.print("Input StoreID: ");
+            storeID = in.readLine();
+            System.out.print("Input numberOfUnits: ");
+            String numUnits = in.readLine();
+            System.out.print("Input pricePerUnit: ");
+            String price = in.readLine();
+            int sID = Integer.parseInt(storeID);
+            int nUnits = Integer.parseInt(numUnits);
+            int pri = Integer.parseInt(price);
 
-            query = String.format("UPDATE Orders SET productName = '%s' WHERE productName = '%s'",nProName,proName);
-            esql.executeUpdate(query);
-            query = String.format("UPDATE PRODUCT SET productName = '%s' WHERE productName = '%s'",nProName,proName);
+            query = String.format("INSERT INTO PRODUCT (storeID,productName,numberOfUnits,pricePerUnit) VALUES ('%d','%s','%d','%d')",sID,proName,nUnits,pri);
             esql.executeUpdate(query);
             break;
          case 2:
-            System.out.print("Input Product name to delete");
+            System.out.print("Input Product name to delete: ");
             proName = in.readLine();
             query = String.format("DELETE FROM Orders WHERE productName = '%s'",proName);
+            esql.executeUpdate(query);
+            query = String.format("DELETE FROM ProductUpdates WHERE productName = '%s'",proName);
+            esql.executeUpdate(query);
+            query = String.format("DELETE FROM ProductSupplyRequests  WHERE productName = '%s'",proName);
             esql.executeUpdate(query);
             query = String.format("DELETE FROM Product WHERE productName = '%s'",proName);
             esql.executeUpdate(query);
